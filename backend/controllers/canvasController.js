@@ -1,4 +1,6 @@
 const Canvas = require("../models/canvasModel");
+const User = require("../models/userModel");
+const mongoose = require("mongoose");
 
 // Create a new canvas
 exports.createCanvas = async (req, res) => {
@@ -68,12 +70,18 @@ exports.loadCanvas = async (req, res) => {
     }
 };
 
-// Share canvas with another user
+
 exports.shareCanvas = async (req, res) => {
     try {
-        const { userIdToShare } = req.body;
+        const { email } = req.body; 
         const canvasId = req.params.id;
-        const userId = req.userId;
+        const userId = req.userId; 
+
+        // Find the user by email
+        const userToShare = await User.findOne({ email });
+        if (!userToShare) {
+            return res.status(404).json({ error: "User with this email not found" });
+        }
 
         const canvas = await Canvas.findById(canvasId);
         if (!canvas) {
@@ -84,16 +92,30 @@ exports.shareCanvas = async (req, res) => {
             return res.status(403).json({ error: "Only the owner can share this canvas" });
         }
 
-        if (!canvas.shared.includes(userIdToShare)) {
-            canvas.shared.push(userIdToShare);
-            await canvas.save();
+        // Ensure the shared userId is an ObjectId
+        const sharedUserId = new mongoose.Types.ObjectId(userToShare._id);
+
+        // Prevent adding the owner to shared list
+        if (canvas.owner.toString() === sharedUserId.toString()) {
+            return res.status(400).json({ error: "Owner cannot be added to shared list" });
         }
+
+        // Check if the user is already in the shared array
+        const alreadyShared = canvas.shared.some(id => id.toString() === sharedUserId.toString());
+        if (alreadyShared) {
+            return res.status(400).json({ error: "Already shared with user" });
+        }
+
+        // Add user to shared list
+        canvas.shared.push(sharedUserId);
+        await canvas.save();
 
         res.json({ message: "Canvas shared successfully" });
     } catch (error) {
         res.status(500).json({ error: "Failed to share canvas", details: error.message });
     }
 };
+
 
 // Unshare canvas from a user
 exports.unshareCanvas = async (req, res) => {
