@@ -10,10 +10,14 @@ import {
   getSvgPathFromStroke,
 } from "../../utils/element";
 import getStroke from "perfect-freehand";
+import axios from "axios";
 
-function Board() {
+
+function Board({ id }) {
   const canvasRef = useRef();
   const textAreaRef = useRef();
+  console.log(id)
+
   const {
     elements,
     toolActionType,
@@ -23,9 +27,32 @@ function Board() {
     textAreaBlurHandler,
     undo,
     redo,
-    setCanvasId
+    setCanvasId,
+    setElements,
+    setHistory
   } = useContext(boardContext);
   const { toolboxState } = useContext(toolboxContext);
+
+  const token = localStorage.getItem("whiteboard_user_token");
+  useEffect(() => {
+    const fetchCanvasData = async () => {
+      if (id) {
+        try {
+          const response = await axios.get(`http://localhost:5000/api/canvas/load/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setCanvasId(id); // Set the current canvas ID
+          setElements(response.data.elements); // Set the fetched elements
+          setHistory(response.data.elements); // Set the fetched elements
+        } catch (error) {
+          console.error("Error loading canvas:", error);
+        } finally {
+        }
+      }
+    };
+
+    fetchCanvasData();
+  }, [id, token]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

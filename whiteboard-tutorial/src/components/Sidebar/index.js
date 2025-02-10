@@ -3,19 +3,24 @@ import axios from 'axios';
 import './index.min.css';
 import { useNavigate } from 'react-router-dom';
 import boardContext from '../../store/board-context';
+import { useParams } from 'react-router-dom';
+
 
 const Sidebar = () => {
   const [canvases, setCanvases] = useState([]);
   const token = localStorage.getItem('whiteboard_user_token');
-  const { canvasId, setCanvasId, setElements, setHistory, isUserLoggedIn, setUserLoginStatus} = useContext(boardContext);
+  const { canvasId, setCanvasId,setElements,setHistory, isUserLoggedIn, setUserLoginStatus} = useContext(boardContext);
   const navigate = useNavigate();
 
+  const { id } = useParams(); 
 
   useEffect(() => {
     if (isUserLoggedIn) {
       fetchCanvases();
     }
   }, [isUserLoggedIn]);
+
+  useEffect(() => {}, []);
 
 
   const fetchCanvases = async () => {
@@ -24,18 +29,19 @@ const Sidebar = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCanvases(response.data);
+      console.log(response.data)
       
       if (response.data.length === 0) {
         const newCanvas = await handleCreateCanvas();
         if (newCanvas) {
           setCanvasId(newCanvas._id);
-          setElements(newCanvas.elements);
-          setHistory(newCanvas.elements);
+          handleCanvasClick(newCanvas._id);
         }
       } else if (!canvasId && response.data.length > 0) {
-        setCanvasId(response.data[0]._id);
-        setElements(response.data[0].elements);
-        setHistory(response.data[0].elements);
+        if(!id){
+          setCanvasId(response.data[0]._id);
+          handleCanvasClick(response.data[0]._id);
+        }
       }
     } catch (error) {
       console.error('Error fetching canvases:', error);
@@ -47,9 +53,10 @@ const Sidebar = () => {
       const response = await axios.post('http://localhost:5000/api/canvas/create', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCanvasId(response.data.canvasId);
-      setElements([]);
+      console.log(response.data)  
       fetchCanvases();
+      setCanvasId(response.data.canvasId);
+      handleCanvasClick(response.data.canvasId);
     } catch (error) {
       console.error('Error creating canvas:', error);
       return null;
@@ -62,22 +69,15 @@ const Sidebar = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchCanvases();
+      setCanvasId(canvases[0]._id);
+      handleCanvasClick(canvases[0]._id);
     } catch (error) {
       console.error('Error deleting canvas:', error);
     }
   };
 
   const handleCanvasClick = async (id) => {
-    try {
-      const response = await axios.get(`http://localhost:5000/api/canvas/load/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setCanvasId(id);
-      setElements(response.data.elements);
-      setHistory(response.data.elements);
-    } catch (error) {
-      console.error('Error loading canvas:', error);
-    }
+    navigate(`/${id}`);
   };
 
   const handleLogout = () => {
