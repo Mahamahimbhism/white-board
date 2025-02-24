@@ -1,8 +1,9 @@
-import { useContext, useEffect, useLayoutEffect, useRef } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import rough from "roughjs";
 import boardContext from "../../store/board-context";
 import { TOOL_ACTION_TYPES, TOOL_ITEMS } from "../../constants";
 import toolboxContext from "../../store/toolbox-context";
+import socket from "../../utils/socket";
 
 import classes from "./index.module.css";
 
@@ -34,9 +35,41 @@ function Board({ id }) {
   const { toolboxState } = useContext(toolboxContext);
 
   const token = localStorage.getItem("whiteboard_user_token");
+
+  const [isAuthorized, setIsAuthorized] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      // Join the canvas room (no need for userId)
+      socket.emit("joinCanvas", { canvasId: id });
+
+      // Listen for updates from other users
+      socket.on("receiveDrawingUpdate", (updatedElements) => {
+        setElements(updatedElements);
+      });
+
+      // Load initial canvas data
+      socket.on("loadCanvas", (initialElements) => {
+        setElements(initialElements);
+      });
+
+      socket.on("unauthorized", (data) => {
+        console.log(data.message);
+        alert("Access Denied: You cannot edit this canvas.");
+        setIsAuthorized(false);
+      });
+
+      return () => {
+        socket.off("receiveDrawingUpdate");
+        socket.off("loadCanvas");
+        socket.off("unauthorized");
+      };
+    }
+  }, [id]);
+
   useEffect(() => {
     const fetchCanvasData = async () => {
-      if (id) {
+      if (id && token) {
         try {
           const response = await axios.get(`http://localhost:5000/api/canvas/load/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -127,15 +160,20 @@ function Board({ id }) {
   // console.log("Elements ",elements);
 
   const handleMouseDown = (event) => {
+    if (!isAuthorized) return;
     boardMouseDownHandler(event, toolboxState);
   };
 
   const handleMouseMove = (event) => {
+    if (!isAuthorized) return;
     boardMouseMoveHandler(event);
+    socket.emit("drawingUpdate", { canvasId: id, elements });
   };
 
   const handleMouseUp = () => {
+    if (!isAuthorized) return;
     boardMouseUpHandler();
+    socket.emit("drawingUpdate", { canvasId: id, elements });
   };
 
   return (
