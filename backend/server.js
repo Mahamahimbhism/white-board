@@ -45,7 +45,9 @@ io.on("connection", (socket) => {
         const authHeader = socket.handshake.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             console.log("No token provided.");
-            socket.emit("unauthorized", { message: "Access Denied: No Token" });
+            setTimeout(() => {
+              socket.emit("unauthorized", { message: "Access Denied: No Token" });
+          }, 100);
             return;
         }
 
