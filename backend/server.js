@@ -58,9 +58,13 @@ io.on("connection", (socket) => {
         console.log(canvas)
         if (!canvas || (String(canvas.owner) !== String(userId) && !canvas.shared.includes(userId))) {
             console.log("Unauthorized access.");
-            socket.emit("unauthorized", { message: "You are not authorized to join this canvas." });
+            setTimeout(() => {
+                socket.emit("unauthorized", { message: "You are not authorized to join this canvas." });
+            }, 100);
             return;
         }
+
+        // socket.emit("authorized");
   
         socket.join(canvasId);
         console.log(`User ${socket.id} joined canvas ${canvasId}`);
