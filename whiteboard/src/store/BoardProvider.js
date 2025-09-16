@@ -210,22 +210,6 @@ const BoardProvider = ({ children }) => {
     initialBoardState
   );
 
-  // Fetch elements from the database on component mount
-  // useEffect(() => {
-  //   // Move the API call to utils/api.js
-  //   fetchInitialCanvasElements(boardState.canvasId)
-  //     .then((elements) => {
-  //       dispatchBoardAction({
-  //         type: BOARD_ACTIONS.SET_INITIAL_ELEMENTS,
-  //         payload: { elements },
-  //       });
-  //     })
-  //     .catch((error) => {
-  //       console.error("Error fetching initial canvas elements:", error);
-  //       // Optionally handle the error, e.g., set a default state or display an error message
-  //     });
-  // }, []); // Empty dependency array ensures this runs only once on mount
-
   const changeToolHandler = (tool) => {
     dispatchBoardAction({
       type: BOARD_ACTIONS.CHANGE_TOOL,

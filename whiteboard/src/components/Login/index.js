@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styles from './index.module.css';
 import boardContext from '../../store/board-context';
@@ -7,13 +7,19 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const { isUserLoggedIn,setUserLoginStatus } = useContext(boardContext);
+  const { isUserLoggedIn, setUserLoginStatus } = useContext(boardContext);
 
   console.log(isUserLoggedIn);
+  
+  useEffect(() => {
+    if (isUserLoggedIn) {
+      navigate('/canvas');
+    }}, [isUserLoggedIn, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://api-whiteboard-az.onrender.com/api/users/login', {
+      const response = await fetch('http://localhost:5000/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -24,7 +30,8 @@ const Login = () => {
       if (response.ok) {
         localStorage.setItem('whiteboard_user_token', data.token);
         setUserLoginStatus(true);
-        navigate('/');
+        // Force a clean reload after successful login
+        window.location.href = '/';
       } else {
         alert(data.message || 'Login failed');
       }

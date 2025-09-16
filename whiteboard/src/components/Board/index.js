@@ -25,7 +25,6 @@ function Board({ id }) {
     boardMouseDownHandler,
     boardMouseMoveHandler,
     boardMouseUpHandler,
-    textAreaBlurHandler,
     undo,
     redo,
     setCanvasId,
@@ -39,9 +38,11 @@ function Board({ id }) {
   const [isAuthorized, setIsAuthorized] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      // Join the canvas room (no need for userId)
-      socket.emit("joinCanvas", { canvasId: id });
+    if (id && token) {
+      // Try to join canvas with a small delay to ensure token is processed
+      const joinTimer = setTimeout(() => {
+        socket.emit("joinCanvas", { canvasId: id });
+      }, 300);
 
       // Listen for updates from other users
       socket.on("receiveDrawingUpdate", (updatedElements) => {
@@ -59,7 +60,9 @@ function Board({ id }) {
         setIsAuthorized(false);
       });
 
+      // Single cleanup function
       return () => {
+        clearTimeout(joinTimer);
         socket.off("receiveDrawingUpdate");
         socket.off("loadCanvas");
         socket.off("unauthorized");
@@ -71,7 +74,7 @@ function Board({ id }) {
     const fetchCanvasData = async () => {
       if (id && token) {
         try {
-          const response = await axios.get(`https://api-whiteboard-az.onrender.com/api/canvas/load/${id}`, {
+          const response = await axios.get(`http://localhost:5000/api/canvas/load/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setCanvasId(id); // Set the current canvas ID
@@ -189,7 +192,6 @@ function Board({ id }) {
             fontSize: `${elements[elements.length - 1]?.size}px`,
             color: elements[elements.length - 1]?.stroke,
           }}
-          onBlur={(event) => textAreaBlurHandler(event.target.value)}
         />
       )}
       <canvas

@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, Navigate } from "react-router-dom";
 import Board from "./components/Board";
 import Toolbar from "./components/Toolbar";
 import Toolbox from "./components/Toolbox";
@@ -17,9 +17,9 @@ function HomePage() {
     <ToolboxProvider>
       <div className="app-container">
         <Toolbar />
-        <Board id={id}/>
+        <Board id={id} />
         <Toolbox />
-        <Sidebar /> 
+        <Sidebar />
       </div>
     </ToolboxProvider>
   );
@@ -32,8 +32,9 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<HomePage />} />
-          <Route path="/:id" element={<HomePage />} /> 
+          <Route path="/canvas" element={<HomePage />} />
+          <Route path="*" element={<Navigate replace to="/canvas" />} />
+          <Route path="/canvas/:id" element={<HomePage />} />
         </Routes>
       </Router>
     </BoardProvider>

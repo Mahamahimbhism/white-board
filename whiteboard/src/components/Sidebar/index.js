@@ -7,15 +7,16 @@ import { useParams } from 'react-router-dom';
 
 
 const Sidebar = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [canvases, setCanvases] = useState([]);
   const token = localStorage.getItem('whiteboard_user_token');
-  const { canvasId, setCanvasId,setElements,setHistory, isUserLoggedIn, setUserLoginStatus} = useContext(boardContext);
+  const { canvasId, setCanvasId, setElements, setHistory, isUserLoggedIn, setUserLoginStatus } = useContext(boardContext);
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const { id } = useParams(); 
+  const { id } = useParams();
 
   useEffect(() => {
     if (isUserLoggedIn) {
@@ -23,16 +24,14 @@ const Sidebar = () => {
     }
   }, [isUserLoggedIn]);
 
-  useEffect(() => {}, []);
-
   const fetchCanvases = async () => {
     try {
-      const response = await axios.get('https://api-whiteboard-az.onrender.com/api/canvas/list', {
+      const response = await axios.get('http://localhost:5000/api/canvas/list', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCanvases(response.data);
       console.log(response.data)
-      
+
       if (response.data.length === 0) {
         const newCanvas = await handleCreateCanvas();
         if (newCanvas) {
@@ -40,7 +39,7 @@ const Sidebar = () => {
           handleCanvasClick(newCanvas._id);
         }
       } else if (!canvasId && response.data.length > 0) {
-        if(!id){
+        if (!id) {
           setCanvasId(response.data[0]._id);
           handleCanvasClick(response.data[0]._id);
         }
@@ -52,10 +51,10 @@ const Sidebar = () => {
 
   const handleCreateCanvas = async () => {
     try {
-      const response = await axios.post('https://api-whiteboard-az.onrender.com/api/canvas/create', {}, {
+      const response = await axios.post('http://localhost:5000/api/canvas/create', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log(response.data)  
+      console.log(response.data)
       fetchCanvases();
       setCanvasId(response.data.canvasId);
       handleCanvasClick(response.data.canvasId);
@@ -67,7 +66,7 @@ const Sidebar = () => {
 
   const handleDeleteCanvas = async (id) => {
     try {
-      await axios.delete(`https://api-whiteboard-az.onrender.com/api/canvas/delete/${id}`, {
+      await axios.delete(`http://localhost:5000/api/canvas/delete/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchCanvases();
@@ -79,13 +78,15 @@ const Sidebar = () => {
   };
 
   const handleCanvasClick = async (id) => {
-    navigate(`/${id}`);
+    navigate(`/canvas/${id}`);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('whiteboard_user_token');
     setCanvases([]);
     setUserLoginStatus(false);
+    setElements([]);  // Clear the canvas elements
+    setCanvasId(null);  // Clear the current canvas ID
     navigate('/');
   };
 
@@ -104,7 +105,7 @@ const Sidebar = () => {
       setSuccess(""); // Clear previous success message
 
       const response = await axios.put(
-        `https://api-whiteboard-az.onrender.com/api/canvas/share/${canvasId}`,
+        `http://localhost:5000/api/canvas/share/${canvasId}`,
         { email },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -123,34 +124,55 @@ const Sidebar = () => {
     }
   };
 
-  return (
-    <div className="sidebar">
-      <button 
-        className="create-button" 
-        onClick={handleCreateCanvas} 
+  const openSidebar = () => {
+    setSidebarOpen(true);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
+  const sidebar = () => {
+    return (<div className="sidebar">
+      <button
+        className="create-button"
+        onClick={handleCreateCanvas}
         disabled={!isUserLoggedIn}
       >
         + Create New Canvas
       </button>
       <ul className="canvas-list">
-        {canvases.map(canvas => (
-          <li 
-            key={canvas._id} 
-            className={`canvas-item ${canvas._id === canvasId ? 'selected' : ''}`}
-          >
-            <span 
-              className="canvas-name" 
-              onClick={() => handleCanvasClick(canvas._id)}
-            >
-              {canvas._id}
-            </span>
-            <button className="delete-button" onClick={() => handleDeleteCanvas(canvas._id)}>
-              del
-            </button>
-          </li>
-        ))}
+        {<ul className="canvas-list">
+        {(() => {
+          const items = [];
+          for (let i = 0; i < canvases.length; i++) {
+            const canvas = canvases[i];
+            items.push(
+              <li
+                key={canvas._id}
+                className={`canvas-item ${canvas._id === canvasId ? 'selected' : ''}`}
+              >
+                <button
+                  className="canvas-name"
+                  onClick={() => handleCanvasClick(canvas._id)}
+                >
+                  Canvas {i + 1}
+                </button>
+                <button className="delete-button" onClick={() => handleDeleteCanvas(canvas._id)}>
+                  Delete
+                </button>
+              </li>
+            );
+          }
+          return items;
+        })()}
+      </ul>}
       </ul>
-      
+
+      <button className="close-button" onClick={closeSidebar}>
+        Close Sidebar
+      </button>
+
       <div className="share-container">
         <input
           type="email"
@@ -163,7 +185,7 @@ const Sidebar = () => {
         </button>
         {error && <p className="error-message">{error}</p>}
         {success && <p className="success-message">{success}</p>}
-    </div>
+      </div>
       {isUserLoggedIn ? (
         <button className="auth-button logout-button" onClick={handleLogout}>
           Logout
@@ -173,7 +195,13 @@ const Sidebar = () => {
           Login
         </button>
       )}
-    </div>
+    </div>);
+  }
+
+  return (
+    <>
+      {sidebarOpen ? sidebar() : <button className="open-sidebar-button" onClick={openSidebar}>☰ Open Sidebar</button>}
+    </>
   );
 };
 
